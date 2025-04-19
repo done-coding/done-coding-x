@@ -3,6 +3,10 @@
     {
       "name": "done-coding-x",
       "path": "."
+    },
+    {
+      "name": "@done-coding/x-promise",
+      "path": "./packages/promise"
     }
   ],
   "settings": {

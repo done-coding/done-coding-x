@@ -1,0 +1,55 @@
+{
+  "name": "@done-coding/x-promise",
+  "version": "0.0.0",
+  "description": "拓展promise",
+  "private": false,
+  "module": "es/index.mjs",
+  "type": "module",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./es/index.mjs"
+    }
+  },
+  "files": [
+    "es",
+    "lib",
+    "types",
+    "gif"
+  ],
+  "scripts": {
+    "clean": "rimraf es lib types",
+    "predev": "pnpm run clean",
+    "dev": "vite build --watch",
+    "prebuild": "pnpm run clean",
+    "build": "vite build",
+    "prepack": "pnpm build",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:done-coding/done-coding-x.git",
+    "directory": "packages/promise"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "JustSoSu",
+  "license": "MIT",
+  "sideEffects": false,
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@vitest/coverage-istanbul": "^1.1.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.10",
+    "vite-plugin-dts": "^3.7.0",
+    "vitest": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+  }
+}
