@@ -20,6 +20,7 @@
   "scripts": {
     "clean": "rimraf es lib types",
     "predev": "pnpm run clean",
+    "serve": "vite",
     "dev": "vite build --watch",
     "prebuild": "pnpm run clean",
     "build": "vite build",
@@ -33,7 +34,8 @@
     "directory": "packages/promise"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "author": "JustSoSu",
   "license": "MIT",
@@ -50,6 +52,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }
