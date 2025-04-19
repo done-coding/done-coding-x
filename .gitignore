@@ -1,0 +1,8 @@
+node_modules
+packages/*/lib
+packages/*/es
+packages/*/types
+packages/*/release
+packages/*/dist
+packages/*/coverage
+lerna-debug.log
