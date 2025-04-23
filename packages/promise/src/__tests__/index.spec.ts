@@ -45,7 +45,6 @@ const getPromise = (config: {
     }
     setTimeout(() => {
       if (secondError) {
-        console.log(48, "secondError");
         throw new Error(SECOND_ERROR);
       } else if (secondReject) {
         return reject(new Error(SECOND_REJECT));
@@ -57,7 +56,7 @@ const getPromise = (config: {
 };
 
 describe("timeout", () => {
-  describe.skip(FIRST_ERROR, () => {
+  describe(FIRST_ERROR, () => {
     test("未到超时时间 直接报错1", async () => {
       const promise = getPromise({ firstError: true });
       try {
@@ -75,7 +74,7 @@ describe("timeout", () => {
       }
     });
   });
-  describe.skip(FIRST_REJECT, () => {
+  describe(FIRST_REJECT, () => {
     test("未到超时时间 直接REJECT1", async () => {
       const promise = getPromise({ firstReject: true });
       try {
@@ -93,7 +92,7 @@ describe("timeout", () => {
       }
     });
   });
-  describe.skip(FIRST_RESOLVE, () => {
+  describe(FIRST_RESOLVE, () => {
     test("超时", async () => {
       const promise = getPromise({ firstResolve: true });
       const result = await promise.timeout(TIME_OUT);
@@ -117,7 +116,7 @@ describe("timeout", () => {
         );
       }
     });
-    test.skip("虽然报错 但先超时", async () => {
+    test("虽然报错 但先超时", async () => {
       const promise = getPromise({ secondError: true });
       try {
         await promise.timeout(TIME_OUT - CHANGE_TIME);
@@ -129,7 +128,7 @@ describe("timeout", () => {
       }
     });
   });
-  describe.skip(SECOND_REJECT, () => {
+  describe(SECOND_REJECT, () => {
     test("先于超时REJECT", async () => {
       const promise = getPromise({ secondReject: true });
       try {
@@ -150,7 +149,7 @@ describe("timeout", () => {
       }
     });
   });
-  describe.skip(SECOND_RESOLVE, () => {
+  describe(SECOND_RESOLVE, () => {
     test("先于超时RESOLVE", async () => {
       const promise = getPromise({ secondResolve: true });
       const result = await promise.timeout(TIME_OUT + CHANGE_TIME);

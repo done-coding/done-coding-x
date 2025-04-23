@@ -43,7 +43,7 @@ export class XPromise<T> implements Promise<T> {
     console.log(`超时设置${time}ms, 剩余${waitTime}ms`);
     baseInfo.timeoutTimer = setTimeout(() => {
       console.log("走到超时时刻");
-      baseInfo.rejectWrap!(new XPromiseError(XPromiseErrorCodeEnum.TIMEOUT));
+      baseInfo.rejectWrap(new XPromiseError(XPromiseErrorCodeEnum.TIMEOUT));
     }, waitTime) as unknown as number;
     return this;
   };

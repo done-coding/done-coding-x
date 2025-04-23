@@ -12,8 +12,6 @@ let index = 0;
 export interface XPromiseRawRefInfo<T> {
   /** promise */
   promise: Promise<T>;
-  /** 超时定时器 */
-  timeoutTimer?: number;
   /** resolve包装方法 */
   resolveWrap: (value: T) => void;
   /** reject包装方法 */
@@ -26,8 +24,9 @@ export interface XPromiseRawRefInfo<T> {
   promiseFinally: Promise<T>["finally"];
 }
 
-/** base信息 */
-export interface XPromiseBaseInfo<T> extends XPromiseRawRefInfo<T> {
+export interface XPromiseRecordInfo {
+  /** 超时定时器 */
+  timeoutTimer?: number;
   /** 清除超时定时器 */
   clearTimeoutTimer: () => void;
   /** 开始时间 */
@@ -42,23 +41,19 @@ export interface XPromiseBaseInfo<T> extends XPromiseRawRefInfo<T> {
   index: number;
 }
 
+/** base信息 */
+export interface XPromiseBaseInfo<T>
+  extends XPromiseRawRefInfo<T>,
+    XPromiseRecordInfo {}
+
 export interface XPromiseRawContext<T> {
   baseInfo: XPromiseBaseInfo<T>;
 }
 
-export const createXPromiseRawInfo = <T>(): Partial<XPromiseRawRefInfo<T>> => {
-  return {
-    promise: undefined,
-    timeoutTimer: undefined,
-    resolveWrap: undefined,
-    rejectWrap: undefined,
-  };
-};
-
 /** 挂载信息 */
 const generateExecutor = <T>(
   executorRaw: XPromiseExecutor<T>,
-  baseInfo: XPromiseBaseInfo<T>,
+  baseInfo: XPromiseRecordInfo & Partial<XPromiseRawRefInfo<T>>,
 ): XPromiseExecutor<T> => {
   return (resolve, reject) => {
     baseInfo.resolveWrap = (value: T) => {
@@ -99,8 +94,8 @@ const generateExecutor = <T>(
 export const createXPromiseRawContext = <T>(
   executorRaw: XPromiseExecutor<T>,
 ): XPromiseRawContext<T> => {
-  const baseInfo: XPromiseBaseInfo<T> = {
-    ...(createXPromiseRawInfo<T>() as XPromiseRawRefInfo<T>),
+  const baseInfo: XPromiseRecordInfo & Partial<XPromiseRawRefInfo<T>> = {
+    timeoutTimer: undefined,
     clearTimeoutTimer() {
       if (this.timeoutTimer) {
         clearTimeout(this.timeoutTimer);
@@ -130,6 +125,6 @@ export const createXPromiseRawContext = <T>(
   });
 
   return {
-    baseInfo,
+    baseInfo: baseInfo as XPromiseBaseInfo<T>,
   };
 };
