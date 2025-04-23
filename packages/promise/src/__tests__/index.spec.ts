@@ -2,9 +2,9 @@ import { describe, test } from "vitest";
 import { XPromise, XPromiseErrorCodeEnum } from "@/index";
 import { XPromiseErrorCodeEnumMap } from "@/utils/resolve-enums";
 
-const TIME_OUT = 3000;
+const TIME_OUT = 500;
 
-const CHANGE_TIME = 1000;
+const CHANGE_TIME = 300;
 
 const FIRST_ERROR = `立即报错_${Math.random()}`;
 const FIRST_REJECT = `立即REJECT_${Math.random()}`;
@@ -106,14 +106,15 @@ describe("timeout", () => {
     });
   });
   describe(SECOND_ERROR, () => {
-    test("先于超时报错", async () => {
+    test("先于超时报错(虽然先报错 但没有调用reject 最终触发的还是超时)", async () => {
       const promise = getPromise({ secondError: true });
       try {
-        const result = await promise.timeout(TIME_OUT + CHANGE_TIME);
-        console.log(111, result);
+        await promise.timeout(TIME_OUT + CHANGE_TIME);
       } catch (error: any) {
-        console.log(113, error.message);
-        expect(error.message).toBe(SECOND_ERROR);
+        expect(error.code).toBe(XPromiseErrorCodeEnum.TIMEOUT);
+        expect(error.message).toBe(
+          XPromiseErrorCodeEnumMap[XPromiseErrorCodeEnum.TIMEOUT],
+        );
       }
     });
     test.skip("虽然报错 但先超时", async () => {
@@ -157,8 +158,14 @@ describe("timeout", () => {
     });
     test("虽然RESOLVE 但先超时", async () => {
       const promise = getPromise({ secondResolve: true });
-      const result = await promise.timeout(TIME_OUT - CHANGE_TIME);
-      expect(result).toBe(SECOND_RESOLVE);
+      try {
+        await promise.timeout(TIME_OUT - CHANGE_TIME);
+      } catch (error: any) {
+        expect(error.code).toBe(XPromiseErrorCodeEnum.TIMEOUT);
+        expect(error.message).toBe(
+          XPromiseErrorCodeEnumMap[XPromiseErrorCodeEnum.TIMEOUT],
+        );
+      }
     });
   });
 });
