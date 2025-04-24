@@ -16,17 +16,11 @@ export interface XPromiseRawRefInfo<T> {
   resolveWrap: (value: T) => void;
   /** reject包装方法 */
   rejectWrap: (reason: any) => void;
-  /** promise then */
-  promiseThen: Promise<T>["then"];
-  /** promise catch */
-  promiseCatch: Promise<T>["catch"];
-  /** promise finally */
-  promiseFinally: Promise<T>["finally"];
 }
 
 export interface XPromiseRecordInfo {
   /** 超时定时器 */
-  timeoutTimer?: number;
+  timeoutTimer?: ReturnType<typeof setTimeout>;
   /** 清除超时定时器 */
   clearTimeoutTimer: () => void;
   /** 开始时间 */
@@ -111,10 +105,6 @@ export const createXPromiseRawContext = <T>(
   const executor = generateExecutor(executorRaw, baseInfo);
 
   baseInfo.promise = new Promise(executor);
-
-  baseInfo.promiseThen = baseInfo.promise.then.bind(baseInfo.promise);
-  baseInfo.promiseCatch = baseInfo.promise.catch.bind(baseInfo.promise);
-  baseInfo.promiseFinally = baseInfo.promise.finally.bind(baseInfo.promise);
 
   baseInfo.promise.catch((reason) => {
     if (baseInfo.state === XPromiseStateEnum.PENDING) {

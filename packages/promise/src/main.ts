@@ -14,16 +14,32 @@ export class XPromise<T> implements Promise<T> {
     this.__RAW_CONTEXT__ = createXPromiseRawContext(executorRaw);
   }
 
-  public get then() {
-    return this.__RAW_CONTEXT__.baseInfo.promiseThen;
+  // 修正 then 方法
+  public then<TResult1 = T, TResult2 = never>(
+    onFulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
+    onRejected?: (reason: any) => TResult2 | PromiseLike<TResult2>,
+  ): XPromise<TResult1 | TResult2> {
+    return new XPromise((resolve, reject) => {
+      this.__RAW_CONTEXT__.baseInfo.promise
+        .then(onFulfilled, onRejected)
+        .then(resolve, reject);
+    });
   }
 
-  public get catch() {
-    return this.__RAW_CONTEXT__.baseInfo.promiseCatch;
+  // 修正 catch 方法
+  public catch<TResult = never>(
+    onRejected?: (reason: any) => TResult | PromiseLike<TResult>,
+  ): XPromise<T | TResult> {
+    return this.then(undefined, onRejected);
   }
 
-  public get finally() {
-    return this.__RAW_CONTEXT__.baseInfo.promiseFinally;
+  // 修正 finally 方法
+  public finally(onFinally?: () => void): XPromise<T> {
+    return new XPromise((resolve, reject) => {
+      this.__RAW_CONTEXT__.baseInfo.promise
+        .finally(onFinally)
+        .then(resolve, reject);
+    });
   }
 
   public get [Symbol.toStringTag]() {
@@ -44,7 +60,7 @@ export class XPromise<T> implements Promise<T> {
     baseInfo.timeoutTimer = setTimeout(() => {
       console.log("走到超时时刻");
       baseInfo.rejectWrap(new XPromiseError(XPromiseErrorCodeEnum.TIMEOUT));
-    }, waitTime) as unknown as number;
+    }, waitTime);
     return this;
   };
 }
