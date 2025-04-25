@@ -3,11 +3,14 @@ import type { XPromiseExecutor, XPromiseRawContext } from "./rawInfo";
 import { createXPromiseRawContext } from "./rawInfo";
 import { XPromiseStateEnum } from "./utils";
 import { XPromiseErrorCodeEnum } from "./utils";
+import { usePromiseSharing } from "./x-fn";
 
 export { XPromiseError, XPromiseErrorCodeEnum };
 
 /** promise拓展 */
 export class XPromise<T> implements Promise<T> {
+  /** promise共享 */
+  public static useSharing = usePromiseSharing;
   private __RAW_CONTEXT__: XPromiseRawContext<T>;
 
   public constructor(executorRaw: XPromiseExecutor<T>) {
