@@ -4,10 +4,10 @@ import { XPromiseErrorCodeEnum } from "@/utils";
 /** 重试错误 */
 export class XPromiseRetryError extends XPromiseError {
   public constructor(public errorList: Error[]) {
-    const maxRetry = errorList.length;
+    const execCount = errorList.length;
     super(
       XPromiseErrorCodeEnum.MAX_RETRY_FAILED,
-      `重试失败，最大重试次数为 ${maxRetry}`,
+      `执行${execCount}次，最终仍失败`,
     );
   }
 }
@@ -17,12 +17,12 @@ export const promiseRetry = <P extends Promise<any>>(
   createPromise: () => P,
   {
     maxRetry: maxRetryInit,
-    delay = 0,
+    getDelay = () => 0,
   }: {
     /** 最大重试次数 */
     maxRetry: number;
     /** 延迟时间 */
-    delay?: number;
+    getDelay?: (retryCount: number) => number;
   },
 ) => {
   let retryCount = 0;
@@ -45,6 +45,8 @@ export const promiseRetry = <P extends Promise<any>>(
 
           if (retryCount < maxRetry) {
             retryCount++;
+
+            const delay = getDelay(retryCount);
 
             if (delay > 0) {
               setTimeout(attempt, delay);
