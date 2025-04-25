@@ -3,7 +3,7 @@ import type { XPromiseExecutor, XPromiseRawContext } from "./rawInfo";
 import { createXPromiseRawContext } from "./rawInfo";
 import { XPromiseStateEnum } from "./utils";
 import { XPromiseErrorCodeEnum } from "./utils";
-import { usePromiseSharing } from "./x-fn";
+import { promiseRetry, usePromiseSharing } from "./x-fn";
 
 export { XPromiseError, XPromiseErrorCodeEnum };
 
@@ -11,6 +11,8 @@ export { XPromiseError, XPromiseErrorCodeEnum };
 export class XPromise<T> implements Promise<T> {
   /** promise共享 */
   public static useSharing = usePromiseSharing;
+  /** promise重试 */
+  public static retry = promiseRetry;
   private __RAW_CONTEXT__: XPromiseRawContext<T>;
 
   public constructor(executorRaw: XPromiseExecutor<T>) {
