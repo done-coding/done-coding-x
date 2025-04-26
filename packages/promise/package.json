@@ -1,6 +1,6 @@
 {
   "name": "@done-coding/x-promise",
-  "version": "0.3.1",
+  "version": "0.3.2-alpha.0",
   "description": "拓展promise",
   "private": false,
   "module": "es/index.mjs",
