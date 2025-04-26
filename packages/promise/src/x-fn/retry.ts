@@ -1,13 +1,13 @@
 import { XPromiseError } from "@/error";
 import { XPromiseErrorCodeEnum } from "@/utils";
 
-/** 重试错误 */
+/** promise 重试错误 */
 export class XPromiseRetryError extends XPromiseError {
   public constructor(public errorList: Error[]) {
     const execCount = errorList.length;
     super(
       XPromiseErrorCodeEnum.MAX_RETRY_FAILED,
-      `执行${execCount}次，最终仍失败`,
+      `执行${execCount}次(重试${execCount - 1}次)，最终仍失败`,
     );
   }
 }
