@@ -1,7 +1,13 @@
 /** x promise错误码枚举 */
 export enum XPromiseErrorCodeEnum {
+  /**
+   * 创建promise失败
+   * ----
+   * 比如 返回一个promise 但在返回之前出现了异常
+   */
+  CREATE_PROMISE_FAILED = 1,
   /** 超时 */
-  TIMEOUT = 1,
+  TIMEOUT,
   /** 最大重试次数失败 */
   MAX_RETRY_FAILED,
   /** 中止 */

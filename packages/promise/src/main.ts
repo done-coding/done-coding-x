@@ -3,7 +3,13 @@ import type { XPromiseExecutor, XPromiseRawContext } from "./rawInfo";
 import { createXPromiseRawContext } from "./rawInfo";
 import { XPromiseStateEnum } from "./utils";
 import { XPromiseErrorCodeEnum } from "./utils";
-import { promiseRetry, usePromiseSharing, XPromiseCancelError } from "./x-fn";
+import {
+  promiseNoReject,
+  promisePolling,
+  promiseRetry,
+  usePromiseSharing,
+  XPromiseCancelError,
+} from "./x-fn";
 import { XPromiseCancelToken } from "./x-fn";
 
 export { XPromiseError, XPromiseErrorCodeEnum };
@@ -14,6 +20,16 @@ export class XPromise<T> implements Promise<T> {
   public static useSharing = usePromiseSharing;
   /** promise重试 */
   public static retry = promiseRetry;
+  /** promise轮询 */
+  public static polling = promisePolling;
+  /** promise无错 */
+  public static noReject = promiseNoReject;
+  /** 是否是取消/中止错误 */
+  public static isCancelError = XPromiseCancelToken.isCancelError;
+  /** 是否是超时错误 */
+  public static isTimeoutError = (error: unknown): error is XPromiseError =>
+    error instanceof XPromiseError &&
+    error.code === XPromiseErrorCodeEnum.TIMEOUT;
 
   public readonly [Symbol.toStringTag] = `object ${XPromise.name}`;
 

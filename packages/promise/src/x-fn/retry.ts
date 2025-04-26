@@ -1,49 +1,65 @@
 import { XPromiseError } from "@/error";
-import { XPromiseErrorCodeEnum } from "@/utils";
+import { ensureCreatePromiseFlowNormal, XPromiseErrorCodeEnum } from "@/utils";
 
 /** promise 重试错误 */
 export class XPromiseRetryError extends XPromiseError {
-  public constructor(public errorList: Error[]) {
-    const execCount = errorList.length;
-    super(
-      XPromiseErrorCodeEnum.MAX_RETRY_FAILED,
-      `执行${execCount}次(重试${execCount - 1}次)，最终仍失败`,
-    );
+  public constructor(
+    public errorList: Error[],
+    message = `执行${errorList.length}次(重试${
+      errorList.length - 1
+    }次)，最终仍失败`,
+  ) {
+    super(XPromiseErrorCodeEnum.MAX_RETRY_FAILED, message);
   }
 }
 
+/** promise 重试选项 */
+export interface XPromiseRetryOptions {
+  /** 最大重试次数 */
+  maxRetry?: number;
+  /** 是否还可以重试 */
+  canRetry?: (
+    /** 当前重试次数 */
+    retryCount: number,
+  ) => boolean;
+  /** 延迟时间 */
+  delay?:
+    | ((
+        /** 当前重试次数 */
+        retryCount: number,
+      ) => number)
+    | number;
+}
+
 /** promise 重试 */
-export const promiseRetry = <P extends Promise<any>>(
-  createPromise: () => P,
+export const promiseRetry = <T>(
+  createPromise: (
+    /** 当前重试次数 */
+    retryCount: number,
+  ) => Promise<T>,
   {
-    maxRetry: maxRetryInit,
-    getDelay = () => 0,
-  }: {
-    /** 最大重试次数 */
-    maxRetry: number;
-    /** 延迟时间 */
-    getDelay?: (retryCount: number) => number;
-  },
+    maxRetry = 0,
+    canRetry = (retryCount) => {
+      return retryCount < Math.max(maxRetry, 0);
+    },
+    delay = 0,
+  }: XPromiseRetryOptions,
 ) => {
   let retryCount = 0;
-
-  if (maxRetryInit < 0) {
-    console.error("最大重试次数不能小于0， 此处将使用默认值 0");
-  }
-
-  const maxRetry = Math.max(maxRetryInit, 0);
 
   /** 记录错误列表 */
   const errorList: Error[] = [];
 
-  return new Promise<P>((resolve, reject) => {
+  const getDelay = typeof delay === "function" ? delay : () => delay;
+
+  return new Promise<T>((resolve, reject) => {
     const attempt = () => {
-      createPromise()
+      ensureCreatePromiseFlowNormal(() => createPromise(retryCount))
         .then(resolve)
         .catch((error) => {
           errorList.push(error);
 
-          if (retryCount < maxRetry) {
+          if (canRetry(retryCount)) {
             retryCount++;
 
             const delay = getDelay(retryCount);

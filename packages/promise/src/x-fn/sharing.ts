@@ -1,12 +1,12 @@
+import { ensureCreatePromiseFlowNormal } from "@/utils";
+
 /** promise 共享 */
-export const usePromiseSharing = <P extends Promise<any>>(
-  createPromise: () => P,
-) => {
-  let promise: P | undefined;
+export const usePromiseSharing = <T>(createPromise: () => Promise<T>) => {
+  let promise: Promise<T> | undefined;
 
   const applyPromise = () => {
     if (!promise) {
-      promise = createPromise();
+      promise = ensureCreatePromiseFlowNormal(() => createPromise());
       // 与外界使用promise并行 只是这里处理promise出错重置共享promise
       promise.catch(() => {
         promise = undefined;
