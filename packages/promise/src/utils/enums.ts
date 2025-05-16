@@ -8,14 +8,20 @@ export enum XPromiseErrorCodeEnum {
   CREATE_PROMISE_FAILED = 1,
   /** 超时 */
   TIMEOUT,
-  /** 最大重试次数失败 */
-  MAX_RETRY_FAILED,
   /** 中止 */
   ABORT,
+  /** 重试超出限制 */
+  RETRY_EXCEED_LIMIT,
+  /** 重试判断是否可以重试函数执行失败 */
+  RETRY_CAN_RETRY_FN_FAILED,
+  /** 重试延迟函数执行失败 */
+  RETRY_DELAY_FN_FAILED,
 }
 
 /** x promise状态枚举 */
 export enum XPromiseStateEnum {
+  /** 未开始 */
+  NOT_STARTED = -1,
   /** 等待中 */
   PENDING = 0,
   /** 成功 */

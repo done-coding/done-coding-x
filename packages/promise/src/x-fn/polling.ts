@@ -1,19 +1,24 @@
-import { type XPromiseRetryOptions, promiseRetry } from "./retry";
+import { usePromiseRetry } from "./retry";
 
 /** promise 轮询 */
-export const promisePolling = <T>(
-  createPromise: (
-    /** 当前重试次数 */
-    retryCount: number,
-  ) => Promise<T>,
-  {
-    maxRetry,
-    delay,
-  }: Omit<XPromiseRetryOptions, "maxRetry" | "canRetry"> &
-    Required<Pick<XPromiseRetryOptions, "maxRetry">>,
+export const usePromisePolling = <T>(
+  ...args: Parameters<typeof usePromiseRetry<T>>
 ) => {
-  return promiseRetry(createPromise, {
-    canRetry: (retryCount) => retryCount < maxRetry,
-    delay,
-  });
+  const {
+    startRetry: startPolling,
+    stopRetry: stopPolling,
+    getStatus,
+    isRetrying: isPolling,
+  } = usePromiseRetry(...args);
+
+  return {
+    /** 开始轮询 */
+    startPolling,
+    /** 停止轮询 */
+    stopPolling,
+    /** 获取轮询状态 */
+    getStatus,
+    /** 判断是在轮询中 */
+    isPolling,
+  };
 };

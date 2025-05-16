@@ -5,8 +5,8 @@ import { XPromiseStateEnum } from "./utils";
 import { XPromiseErrorCodeEnum } from "./utils";
 import {
   promiseNoReject,
-  promisePolling,
-  promiseRetry,
+  usePromisePolling,
+  usePromiseRetry,
   usePromiseSharing,
   XPromiseCancelError,
 } from "./x-fn";
@@ -19,9 +19,9 @@ export class XPromise<T> implements Promise<T> {
   /** promise共享 */
   public static useSharing = usePromiseSharing;
   /** promise重试 */
-  public static retry = promiseRetry;
+  public static useRetry = usePromiseRetry;
   /** promise轮询 */
-  public static polling = promisePolling;
+  public static usePolling = usePromisePolling;
   /** promise无错 */
   public static noReject = promiseNoReject;
   /** 是否是取消/中止错误 */
