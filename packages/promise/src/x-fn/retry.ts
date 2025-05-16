@@ -160,7 +160,7 @@ export const usePromiseRetry = <T>(
             const runTime = endTime - startTime;
 
             const retry = catchFnExecError(
-              () => canRetry({ retryCount, runTime }, error),
+              () => (isStop ? false : canRetry({ retryCount, runTime }, error)),
               (canRetryExecErr) => {
                 const canRetryExecErrFinal = XPromiseRetryError.create({
                   retryCount,
