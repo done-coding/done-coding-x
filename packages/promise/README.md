@@ -11,6 +11,8 @@ XPromise 是一个基于原生 Promise 的功能扩展库，提供了一系列�
 - 🤝 Promise 共享功能，实现请求的并发控制
 - ⏱️ 超时控制，避免操作无限等待
 - ⏹️ 取消/中止功能，支持手动中断操作
+- 📊 状态管理，实时监控操作状态
+- ⚡ 动态延迟时间，支持自定义延迟策略
 
 ## 安装
 
@@ -22,184 +24,188 @@ yarn add @done-coding/x-promise
 pnpm add @done-coding/x-promise
 ```
 
-## 使用示例
+## API 一览
 
-### 1. 重试功能
+- `usePromiseRetry`：通用重试（支持状态管理、主动中止、动态延迟等）
+- `usePromisePolling`：通用轮询（基于重试，API一致）
+- `usePromiseSharing`：Promise 共享（并发控制、缓存）
+- `promiseNoReject`：无拒绝处理
+- `XPromiseCancelToken`：取消令牌
+- 错误类型：`XPromiseError`、`XPromiseRetryError`、`XPromiseCancelError`
 
-```typescript
-import { XPromise } from "@done-coding/x-promise";
+## 典型用法
 
-// 基础重试
-XPromise.retry(() => fetchData(), { maxRetry: 3, delay: 1000 });
-
-// 自定义重试条件
-XPromise.retry(() => fetchData(), {
-  maxRetry: 5,
-  canRetry: (retryCount) => retryCount < 3 || someCondition,
-  delay: (retryCount) => retryCount * 1000, // 递增延迟
-});
-
-// 可取消的重试
-const cancelToken = XPromiseCancelToken.source();
-XPromise.retry(() => fetchData(), {
-  maxRetry: 5,
-  delay: 1000,
-  cancelToken, // 传入取消令牌
-});
-
-// 取消重试
-cancelToken.cancel("用户取消重试");
-```
-
-### 2. 轮询功能
+### 1. 重试功能 usePromiseRetry
 
 ```typescript
-// 基于重试的轮询（直到成功）
-XPromise.polling(() => checkStatus(), {
-  maxRetry: 10,
-  delay: 2000, // 每2秒检查一次
-});
-```
+import { usePromiseRetry } from "@done-coding/x-promise";
 
-### 3. 无拒绝处理
-
-```typescript
-// 确保 Promise 永远不会 reject
-XPromise.noReject(
-  () => riskyOperation(),
-  () => defaultValue, // 发生错误时返回默认值
+const { startRetry, stopRetry, getStatus, isRetrying } = usePromiseRetry(
+  () => fetchData(),
+  {
+    maxRetry: 3,
+    delay: 1000, // 支持 number 或 (info, err) => number
+    maxRunTime: 5000, // 最大运行时间（可选）
+    maxErrorMessageListLength: 5, // 错误消息列表最大长度（可选）
+    canRetry: ({ retryCount, runTime }, err) =>
+      retryCount < 3 && runTime < 5000,
+  },
 );
 
-// 使用静态默认值
-XPromise.noReject(() => riskyOperation(), defaultValue);
+startRetry()
+  .then(console.log)
+  .catch((e) => {
+    if (e.code === "RETRY_EXCEED_LIMIT") {
+      // ...
+    }
+  });
+
+// 主动中止
+stopRetry();
+console.log(getStatus()); // NOT_STARTED | PENDING
+console.log(isRetrying()); // true/false
 ```
 
-### 4. Promise 共享
+### 2. 轮询功能 usePromisePolling
 
 ```typescript
-const { applyPromise } = XPromise.useSharing(() => fetchData());
+import { usePromisePolling } from "@done-coding/x-promise";
 
-// 在Promise完成前，所有调用都会共享同一个Promise实例
-applyPromise().then(console.log); // 共享同一个Promise
-applyPromise().then(console.log); // 共享同一个Promise
-
-// 如果Promise失败，内部会自动重置，下次调用会创建新的Promise
-applyPromise().catch((error) => {
-  console.error(error);
-  // 此时再次调用applyPromise()会创建新的Promise
-});
-
-// 如果Promise成功，共享会持续存在
-// 后续的调用都会得到已经完成的Promise结果
-setTimeout(() => {
-  applyPromise().then(console.log); // 直接得到之前成功的结果
-}, 1000);
-
-// 如果需要重新发起请求，需要创建新的共享实例
-const { applyPromise: applyNewPromise } = XPromise.useSharing(() =>
-  fetchData(),
+const { startPolling, stopPolling, getStatus, isPolling } = usePromisePolling(
+  () => checkStatus(),
+  {
+    maxRetry: 10,
+    delay: 2000,
+  },
 );
+
+startPolling().then(console.log).catch(console.error);
+stopPolling();
+console.log(getStatus());
+console.log(isPolling());
 ```
 
-Promise共享机制说明：
+> **说明**：轮询本质上是基于重试的"直到成功"或"定期检查"，API与 usePromiseRetry 完全一致。
 
-- 在Promise处于pending状态时，所有调用`applyPromise()`都会共享同一个Promise实例
-- 如果Promise失败（reject），内部会自动重置共享状态，下次调用会创建新的Promise
-- 如果Promise成功（resolve），共享状态会持续存在，后续调用都会直接得到已成功的结果
-- 如果需要重新发起请求，需要调用`XPromise.useSharing()`创建新的共享实例
-- 主要用于避免在Promise完成前重复创建相同的Promise，实现请求的并发控制
-
-### 5. 超时和取消控制
+### 3. Promise 共享 usePromiseSharing
 
 ```typescript
-const promise = new XPromise((resolve) => {
-  // 异步操作
-})
-  .timeout(5000) // 5秒超时
-  .abort("用户取消"); // 手动取消
+import { usePromiseSharing } from "@done-coding/x-promise";
 
-// 判断是否是取消错误
-if (XPromise.isCancelError(error)) {
-  console.log("操作被取消");
+const { applyPromise, getStatus, clearPromise, isHasPromise } =
+  usePromiseSharing(() => fetchData(), {
+    rejectClean: true,
+    resolveClean: false,
+  });
+
+applyPromise().then(console.log);
+// 多次 applyPromise() 会共享同一个 Promise
+// 可通过 clearPromise() 主动清理
+```
+
+**说明：**
+
+- `rejectClean`：Promise 失败（reject）时是否自动清理共享实例。为 true 时，失败后下次 applyPromise() 会创建新 Promise。
+- `resolveClean`：Promise 成功（resolve）时是否自动清理共享实例。为 true 时，成功后下次 applyPromise() 会创建新 Promise。
+- 如果你需要强制刷新、组件卸载或主动重置时，请手动调用 `clearPromise()`。
+- 当 `rejectClean` 或 `resolveClean` 为 false 时，务必在合适时机手动调用 `clearPromise()`，否则会一直复用旧的 Promise。
+
+### 4. 无拒绝处理 promiseNoReject
+
+```typescript
+import { promiseNoReject } from "@done-coding/x-promise";
+
+promiseNoReject(() => riskyOperation(), defaultValue).then((res) => {
+  // 永远不会 reject
+});
+```
+
+### 5. 取消令牌 XPromiseCancelToken
+
+```typescript
+import { XPromiseCancelToken } from "@done-coding/x-promise";
+
+const cancelToken = XPromiseCancelToken.source((msg) => {
+  // 这里实现具体的中止逻辑
+});
+cancelToken.cancel("用户取消");
+
+// 判断是否为取消错误
+if (XPromiseCancelToken.isCancelError(error)) {
+  // ...
 }
 ```
 
-## API 文档
-
-### XPromise 类
-
-#### 静态方法
-
-- `retry<T>(createPromise: () => Promise<T>, options: XPromiseRetryOptions): Promise<T>`
-- `polling<T>(createPromise: () => Promise<T>, options: XPromisePollingOptions): Promise<T>`
-- `noReject<T>(createPromise: () => Promise<T>, defaultValue: T | (() => T)): Promise<T>`
-- `useSharing<T>(createPromise: () => Promise<T>): { applyPromise: () => Promise<T> }`
-- `isCancelError(error: unknown): boolean`
-- `isTimeoutError(error: unknown): boolean`
-
-#### 实例方法
-
-- `timeout(time: number): XPromise<T>`
-- `abort(message?: string): void`
-
-### 类型定义
+## 类型定义
 
 ```typescript
-interface XPromiseRetryOptions {
-  maxRetry?: number;
-  canRetry?: (retryCount: number) => boolean;
-  delay?: ((retryCount: number) => number) | number;
+// 重试/轮询选项
+export interface XPromiseRetryOptions {
+  maxRetry?: number; // 最大重试次数，默认0
+  maxRunTime?: number; // 最大运行时间，默认Infinity
+  maxErrorMessageListLength?: number; // 错误消息列表最大长度，默认10
+  canRetry?: (
+    info: { retryCount: number; runTime: number },
+    err?: any,
+  ) => boolean;
+  delay?:
+    | number
+    | ((info: { retryCount: number; runTime: number }, err?: any) => number);
 }
 
-interface XPromisePollingOptions {
-  maxRetry: number;
-  delay?: ((retryCount: number) => number) | number;
+export interface XPromisePollingOptions extends XPromiseRetryOptions {
+  maxRetry: number; // 必填
+}
+
+// 共享选项
+export interface XPromiseSharingOptions {
+  rejectClean?: boolean; // reject时是否清理，默认true
+  resolveClean?: boolean; // resolve时是否清理，默认true
+}
+
+// 状态枚举
+export enum XPromiseStateEnum {
+  NOT_STARTED = -1,
+  PENDING = 0,
+  FULFILLED = 1,
+  REJECTED = 2,
+}
+
+// 错误码枚举
+export enum XPromiseErrorCodeEnum {
+  CREATE_PROMISE_FAILED = 1,
+  TIMEOUT,
+  ABORT,
+  RETRY_EXCEED_LIMIT,
+  RETRY_CAN_RETRY_FN_FAILED,
+  RETRY_DELAY_FN_FAILED,
 }
 ```
 
 ## 错误处理
 
-XPromise 提供了多种错误类型：
+- `XPromiseError`：基础错误类型，包含 code 字段
+- `XPromiseRetryError`：重试/轮询失败错误，包含 code、retryCount、runTime、errorMessageList
+- `XPromiseCancelError`：取消操作错误
 
-- `XPromiseError`: 基础错误类
-- `XPromiseRetryError`: 重试失败错误
-- `XPromiseCancelError`: 取消操作错误
-- `XPromiseTimeoutError`: 超时错误
+### 错误码说明
+
+| code                      | 含义                 |
+| ------------------------- | -------------------- |
+| CREATE_PROMISE_FAILED     | 创建Promise失败      |
+| TIMEOUT                   | 超时                 |
+| ABORT                     | 操作被中止           |
+| RETRY_EXCEED_LIMIT        | 超过重试/轮询限制    |
+| RETRY_CAN_RETRY_FN_FAILED | canRetry函数执行失败 |
+| RETRY_DELAY_FN_FAILED     | delay函数执行失败    |
 
 ## 最佳实践
 
-1. **重试场景**
-
-   - 网络请求失败重试
-   - 数据库操作重试
-   - 文件操作重试
-
-2. **轮询场景**
-
-   - 状态检查
-   - 进度监控
-   - 数据同步
-
-3. **共享场景**
-
-   - 多个组件共享同一个数据请求
-   - 避免重复请求
-   - 缓存管理
-
-4. **超时控制**
-   - 长时间运行的操作
-   - 网络请求超时
-   - 资源加载超时
-
-## 功能规划
-
-### 1. 重试及轮询的取消功能
-
-计划为重试和轮询功能添加取消机制，使用`XPromiseCancelToken`实现，让用户可以在任何时候取消正在进行的重试或轮询操作。
-
-### 2. 轮询功能增强
-
-计划增加新的轮询模式，支持不以成功为标准的定期轮询，可以设置固定的轮询次数和间隔时间，无论成功失败都会继续执行。
+- 网络请求、数据库、文件等场景的失败重试
+- 进度/状态轮询，定期检查直到成功
+- 多组件/多次调用共享同一异步请求，避免重复
+- 复杂异步流程的超时与中止
+- 错误捕获与友好提示
 
 ## 贡献
 
@@ -208,7 +214,3 @@ XPromise 提供了多种错误类型：
 ## 许可证
 
 MIT
-
-```
-
-```
