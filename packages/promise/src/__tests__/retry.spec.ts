@@ -96,7 +96,7 @@ describe("retry", () => {
     expect(result).toBe("success");
     expect(mockFn).toHaveBeenCalledTimes(2);
     expect(delay).toHaveBeenCalledWith(
-      { retryCount: 1, runTime: expect.any(Number) },
+      { retryCount: 0, runTime: expect.any(Number) },
       expect.any(Error),
     );
   });
@@ -197,7 +197,7 @@ describe("retry", () => {
     }
   });
 
-  test("delay函数执行错误", async () => {
+  test("delay函数执行错误-不重试", async () => {
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
     const delay = vi.fn().mockImplementation(() => {
       throw new Error("delay error");
@@ -205,8 +205,25 @@ describe("retry", () => {
     const { startRetry } = usePromiseRetry(mockFn, { delay });
     try {
       await startRetry();
-    } catch (e: unknown) {
+    } catch (e) {
       expect(e).toBeInstanceOf(XPromiseRetryError);
+      expect((e as XPromiseRetryError).code).toBe(
+        XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT,
+      );
+    }
+  });
+
+  test("delay函数执行错误-重试", async () => {
+    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
+    const delay = vi.fn().mockImplementation(() => {
+      throw new Error("delay error");
+    });
+    const { startRetry } = usePromiseRetry(mockFn, { delay, maxRetry: 3 });
+    try {
+      await startRetry();
+    } catch (e) {
+      expect(e).toBeInstanceOf(XPromiseRetryError);
+      expect((e as XPromiseRetryError).retryCount).toBe(0);
       expect((e as XPromiseRetryError).code).toBe(
         XPromiseErrorCodeEnum.RETRY_DELAY_FN_FAILED,
       );
