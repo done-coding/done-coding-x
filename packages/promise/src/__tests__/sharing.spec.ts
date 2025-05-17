@@ -1,5 +1,6 @@
 import { describe, test, expect, vi } from "vitest";
 import { usePromiseSharing } from "@/x-fn";
+import { TestErrorMessages } from "./constants/error-messages";
 
 describe("sharing", () => {
   // 在每个测试前模拟 console.log
@@ -29,7 +30,7 @@ describe("sharing", () => {
   test("Promise失败后重置共享状态", async () => {
     const mockFn = vi
       .fn()
-      .mockRejectedValueOnce(new Error("first error"))
+      .mockRejectedValueOnce(new Error(TestErrorMessages.SHARING.FIRST_ERROR))
       .mockResolvedValue("success");
     const { applyPromise } = usePromiseSharing(mockFn);
 
@@ -38,9 +39,14 @@ describe("sharing", () => {
       await promise1;
     } catch (error: unknown) {
       if (error instanceof Error) {
-        expect(error.message).toBe("first error");
+        expect(error.message).toBe(TestErrorMessages.SHARING.FIRST_ERROR);
       }
     }
+
+    // 等待状态重置
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
 
     const promise2 = applyPromise();
     expect(promise1).not.toBe(promise2);
@@ -54,7 +60,7 @@ describe("sharing", () => {
     const mockFn = vi.fn(() => {
       if (shouldThrow) {
         shouldThrow = false;
-        throw new Error("sync error");
+        throw new Error(TestErrorMessages.SHARING.SYNC_ERROR);
       }
       return Promise.resolve("success");
     });
@@ -63,11 +69,14 @@ describe("sharing", () => {
 
     try {
       await applyPromise();
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        expect(error.message).toBe("sync error");
-      }
+    } catch (error: any) {
+      expect(error.message).toBe(TestErrorMessages.SHARING.SYNC_ERROR);
     }
+
+    // 等待状态重置
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
 
     const result = await applyPromise();
     expect(result).toBe("success");

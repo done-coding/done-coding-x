@@ -40,10 +40,13 @@ export default defineConfig({
   test: {
     globals: true,
     coverage: {
-      provider: "istanbul", // or 'v8'
+      provider: "istanbul",
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts?(x)"],
     },
+    setupFiles: ["./src/__tests__/setup.ts"],
+    testTimeout: 10000,
+    hookTimeout: 10000,
   },
   plugins: [
     dts({

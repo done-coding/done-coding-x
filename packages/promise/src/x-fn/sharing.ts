@@ -37,14 +37,14 @@ export const usePromiseSharing = <T>(
         status = XPromiseStateEnum.FULFILLED;
         if (resolveClean) {
           promise = undefined;
-          console.log("Promise sharing: promise resolve，已重置");
+          // console.log("Promise sharing: promise resolve，已重置");
         }
       })
       .catch(() => {
         status = XPromiseStateEnum.REJECTED;
         if (rejectClean) {
           promise = undefined;
-          console.log("Promise sharing: promise reject，已重置");
+          // console.log("Promise sharing: promise reject，已重置");
         }
       });
 
