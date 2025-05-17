@@ -1,6 +1,5 @@
-import type { XPromiseErrorCodeEnum } from "@/utils";
-import { XPromiseErrorCodeEnumMap } from "@/utils";
-
+import type { XPromiseErrorCodeEnum } from "./enums";
+import { XPromiseErrorCodeEnumMap } from "./resolve-enums";
 /** XPromiseError class */
 export class XPromiseError extends Error {
   public constructor(

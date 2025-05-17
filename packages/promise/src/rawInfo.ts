@@ -52,31 +52,31 @@ const generateExecutor = <T>(
   return (resolve, reject) => {
     baseInfo.resolveWrap = (value: T) => {
       if (baseInfo.state !== XPromiseStateEnum.PENDING) {
-        console.log(`当前状态已经变为${baseInfo.state}, 忽略resolve`);
+        // console.log(`当前状态已经变为${baseInfo.state}, 忽略resolve`);
         return;
       }
       baseInfo.endTime = Date.now();
-      console.log(
-        `${baseInfo.index} 调用成功${baseInfo.num++}次`,
-        value,
-        `耗时${baseInfo.endTime - baseInfo.startTime}ms`,
-      );
-      baseInfo.state = XPromiseStateEnum.FULFILLED;
+      // console.log(
+      //   `${baseInfo.index} 调用成功${baseInfo.num++}次`,
+      //   value,
+      //   `耗时${baseInfo.endTime - baseInfo.startTime}ms`,
+      // );
+      // baseInfo.state = XPromiseStateEnum.FULFILLED;
       baseInfo.clearTimeoutTimer();
       resolve(value);
     };
     baseInfo.rejectWrap = (reason: any) => {
       if (baseInfo.state !== XPromiseStateEnum.PENDING) {
-        console.log(`当前状态已经变为${baseInfo.state}, 忽略reject`);
+        // console.log(`当前状态已经变为${baseInfo.state}, 忽略reject`);
         return;
       }
       baseInfo.endTime = Date.now();
-      console.log(
-        `${baseInfo.index} 调用失败${baseInfo.num++}次`,
-        reason,
-        `耗时${baseInfo.endTime - baseInfo.startTime}ms`,
-      );
-      baseInfo.state = XPromiseStateEnum.REJECTED;
+      // console.log(
+      //   `${baseInfo.index} 调用失败${baseInfo.num++}次`,
+      //   reason,
+      //   `耗时${baseInfo.endTime - baseInfo.startTime}ms`,
+      // );
+      // baseInfo.state = XPromiseStateEnum.REJECTED;
       baseInfo.clearTimeoutTimer();
       reject(reason);
     };
@@ -108,7 +108,7 @@ export const createXPromiseRawContext = <T>(
 
   baseInfo.promise.catch((reason) => {
     if (baseInfo.state === XPromiseStateEnum.PENDING) {
-      console.log(`promise 内部出现pending状态错误`, reason);
+      // console.log(`promise 内部出现pending状态错误`, reason);
       baseInfo.rejectWrap?.(reason);
     }
     return reason;

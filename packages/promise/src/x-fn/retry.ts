@@ -1,10 +1,10 @@
-import { XPromiseError } from "@/error";
 import {
+  XPromiseError,
   catchFnExecError,
   XPromiseErrorCodeEnum,
   XPromiseStateEnum,
+  ensureCreatePromiseFlowNormal,
 } from "@/utils";
-import { ensureCreatePromiseFlowNormal } from "@/utils";
 import { usePromiseSharing } from "./sharing";
 
 /** promise 重试错误选项 */

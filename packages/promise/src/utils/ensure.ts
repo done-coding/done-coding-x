@@ -1,4 +1,4 @@
-import { XPromiseError } from "@/error";
+import { XPromiseError } from "./error";
 import { XPromiseErrorCodeEnum } from "./enums";
 import { catchFnExecError } from "./catch";
 

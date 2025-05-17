@@ -1,18 +1,18 @@
-import { XPromiseError } from "./error";
 import type { XPromiseExecutor, XPromiseRawContext } from "./rawInfo";
 import { createXPromiseRawContext } from "./rawInfo";
-import { XPromiseStateEnum } from "./utils";
-import { XPromiseErrorCodeEnum } from "./utils";
+import {
+  XPromiseError,
+  XPromiseStateEnum,
+  XPromiseErrorCodeEnum,
+} from "@/utils";
 import {
   promiseNoReject,
   usePromisePolling,
   usePromiseRetry,
   usePromiseSharing,
   XPromiseCancelError,
-} from "./x-fn";
-import { XPromiseCancelToken } from "./x-fn";
-
-export { XPromiseError, XPromiseErrorCodeEnum };
+  XPromiseCancelToken,
+} from "@/x-fn";
 
 /** promise拓展 */
 export class XPromise<T> implements Promise<T> {
@@ -72,15 +72,15 @@ export class XPromise<T> implements Promise<T> {
   public timeout = (time: number): XPromise<T> => {
     const { baseInfo } = this.#sourcePromiseContext;
     if (baseInfo.state !== XPromiseStateEnum.PENDING) {
-      console.warn("超时设置失败，promise状态不为pending");
+      // console.warn("超时设置失败，promise状态不为pending");
       return this;
     }
     baseInfo.clearTimeoutTimer();
     const waitTime = Math.max(0, baseInfo.startTime + time - Date.now());
 
-    console.log(`超时设置${time}ms, 剩余${waitTime}ms`);
+    // console.log(`超时设置${time}ms, 剩余${waitTime}ms`);
     baseInfo.timeoutTimer = setTimeout(() => {
-      console.log("走到超时时刻");
+      // console.log("走到超时时刻");
       baseInfo.rejectWrap(new XPromiseError(XPromiseErrorCodeEnum.TIMEOUT));
     }, waitTime);
     return this;

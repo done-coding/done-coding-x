@@ -1,5 +1,8 @@
-import { XPromiseError } from "@/error";
-import { XPromiseErrorCodeEnum, XPromiseErrorCodeEnumMap } from "@/utils";
+import {
+  XPromiseError,
+  XPromiseErrorCodeEnum,
+  XPromiseErrorCodeEnumMap,
+} from "@/utils";
 
 /** promise 取消错误 */
 export class XPromiseCancelError extends XPromiseError {
