@@ -160,7 +160,7 @@ export const usePromiseRetry = <T>(
             const runTime = endTime - startTime;
 
             const retry = catchFnExecError(
-              () => (isStop ? false : canRetry({ retryCount, runTime }, error)),
+              () => canRetry({ retryCount, runTime }, error),
               (canRetryExecErr) => {
                 const canRetryExecErrFinal = XPromiseRetryError.create({
                   retryCount,
@@ -186,8 +186,6 @@ export const usePromiseRetry = <T>(
                 );
               }
 
-              retryCount++;
-
               const delay = catchFnExecError(
                 () => getDelay({ retryCount, runTime }, error),
                 (delayExecErr) => {
@@ -204,6 +202,7 @@ export const usePromiseRetry = <T>(
               );
 
               if (delay > 0) {
+                retryCount++;
                 const timer = setTimeout(attempt, delay);
 
                 /** 清除重试 */
@@ -219,6 +218,7 @@ export const usePromiseRetry = <T>(
                   );
                 };
               } else {
+                retryCount++;
                 attempt();
               }
             } else {
