@@ -35,7 +35,30 @@ pnpm add @done-coding/x-promise
 
 ## 典型用法
 
-### 1. 重试功能 usePromiseRetry
+### 1. 超时控制
+
+```typescript
+import { XPromise } from "@done-coding/x-promise";
+
+const promise = new XPromise((resolve, reject) => {
+  setTimeout(() => resolve("success"), 2000);
+});
+
+promise.timeout(1000).then(
+  (result) => console.log(result),
+  (error) => console.error(error), // 如果 1 秒内未完成，将抛出超时错误
+);
+```
+
+**说明：**
+
+- `timeout(ms)`：设置 Promise 的超时时间，单位为毫秒。
+- 如果在指定时间内 Promise 未完成，将自动 reject 并抛出超时错误。
+- 超时错误类型为 `PromiseTimeoutError`，可通过 `error.code === 'PROMISE_TIMEOUT'` 判断。
+- 如果 Promise 创建过程中发生异常，会直接抛出该异常，而不会触发超时。
+- 如果 Promise 创建后但在 resolve/reject 前发生异常，且超时先发生，则抛出超时错误；否则抛出原始异常。
+
+### 2. 重试功能 usePromiseRetry
 
 ```typescript
 import { usePromiseRetry } from "@done-coding/x-promise";
@@ -66,7 +89,13 @@ console.log(getStatus()); // NOT_STARTED | PENDING
 console.log(isRetrying()); // true/false
 ```
 
-### 2. 轮询功能 usePromisePolling
+**说明：**
+
+- `delay` 参数支持传入函数，函数接收当前重试信息（重试次数、运行时间）和错误对象，返回延迟时间。
+- 如果 `delay` 函数执行失败，会抛出 `RETRY_DELAY_FN_FAILED` 错误。
+- 通过 `maxErrorMessageListLength` 参数限制错误消息列表的最大长度，默认为 10。超过限制后，错误消息列表会被截断。
+
+### 3. 轮询功能 usePromisePolling
 
 ```typescript
 import { usePromisePolling } from "@done-coding/x-promise";
@@ -87,7 +116,7 @@ console.log(isPolling());
 
 > **说明**：轮询本质上是基于重试的"直到成功"或"定期检查"，API与 usePromiseRetry 完全一致。
 
-### 3. Promise 共享 usePromiseSharing
+### 4. Promise 共享 usePromiseSharing
 
 ```typescript
 import { usePromiseSharing } from "@done-coding/x-promise";
@@ -109,8 +138,10 @@ applyPromise().then(console.log);
 - `resolveClean`：Promise 成功（resolve）时是否自动清理共享实例。为 true 时，成功后下次 applyPromise() 会创建新 Promise。
 - 如果你需要强制刷新、组件卸载或主动重置时，请手动调用 `clearPromise()`。
 - 当 `rejectClean` 或 `resolveClean` 为 false 时，务必在合适时机手动调用 `clearPromise()`，否则会一直复用旧的 Promise。
+- 通过 `getStatus()` 获取当前 Promise 状态（NOT_STARTED、PENDING、FULFILLED、REJECTED）。
+- 通过 `isHasPromise()` 判断是否存在共享的 Promise。
 
-### 4. 无拒绝处理 promiseNoReject
+### 5. 无拒绝处理 promiseNoReject
 
 ```typescript
 import { promiseNoReject } from "@done-coding/x-promise";
@@ -120,7 +151,7 @@ promiseNoReject(() => riskyOperation(), defaultValue).then((res) => {
 });
 ```
 
-### 5. 取消令牌 XPromiseCancelToken
+### 6. 取消令牌 XPromiseCancelToken
 
 ```typescript
 import { XPromiseCancelToken } from "@done-coding/x-promise";
@@ -135,6 +166,15 @@ if (XPromiseCancelToken.isCancelError(error)) {
   // ...
 }
 ```
+
+**说明：**
+
+- 如果 Promise 状态不为 PENDING，调用 `abort()` 会打印警告，但不会抛出错误。
+- 取消令牌支持自定义取消消息。
+
+### 7. Promise 创建失败处理
+
+如果 Promise 创建失败，会抛出 `CREATE_PROMISE_FAILED` 错误，错误码为 1。
 
 ## 类型定义
 
