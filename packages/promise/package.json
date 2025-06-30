@@ -8,14 +8,14 @@
   "types": "types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./es/index.mjs"
+      "import": "./es/index.mjs",
+      "types": "./types/index.d.ts"
     }
   },
   "files": [
     "es",
     "lib",
-    "types",
-    "gif"
+    "types"
   ],
   "scripts": {
     "clean": "rimraf es lib types",
