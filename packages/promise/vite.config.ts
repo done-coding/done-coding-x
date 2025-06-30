@@ -60,6 +60,7 @@ export default defineConfig({
       ],
       exclude: ["**/__tests__/**"],
       outDir: "./types",
+      rollupTypes: true,
     }),
   ],
   resolve: {

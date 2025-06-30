@@ -3,12 +3,14 @@
   "version": "0.5.1",
   "description": "拓展promise",
   "private": false,
+  "main": "lib/index.cjs",
   "module": "es/index.mjs",
-  "type": "module",
   "types": "types/index.d.ts",
+  "type": "module",
   "exports": {
     ".": {
       "import": "./es/index.mjs",
+      "require": "./lib/index.cjs",
       "types": "./types/index.d.ts"
     }
   },
