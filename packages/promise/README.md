@@ -114,7 +114,7 @@ console.log(getStatus());
 console.log(isPolling());
 ```
 
-> **说明**：轮询底层基于 `usePromiseRetry`，但跳出轮询的条件只有超出maxPollingCount或maxRunTime(stopPolling()的返回值Promise<void>，不以createPromise的返回值，即无论失败还是成功都不会结束轮询)，否则会一直轮询; 当然也可以在直接通过canPolling给出是否继续轮询结果
+> **说明**：轮询底层基于 `usePromiseRetry`，但跳出轮询的条件只有超出maxPollingCount或maxRunTime(stopPolling的返回值不是createPromise成功的返回值，即无论失败还是成功都不会结束轮询)，否则会一直轮询; 当然也可以在直接通过canPolling给出是否继续轮询结果
 > `maxPollingCount` 必须大于 1，否则会被当作 1 处理，即只轮询一次。
 
 ### 4. Promise 共享 usePromiseSharing
