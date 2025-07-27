@@ -19,7 +19,7 @@ export interface XPromiseRetryErrorOptions {
   code:
     | XPromiseErrorCodeEnum.ABORT
     | XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT
-    | XPromiseErrorCodeEnum.RETRY_CAN_RETRY_FN_FAILED
+    | XPromiseErrorCodeEnum.RETRY_CAN_CONDITION_FN_FAILED
     | XPromiseErrorCodeEnum.RETRY_DELAY_FN_FAILED;
   /** 错误消息 */
   message?: string;
@@ -65,6 +65,7 @@ export interface XPromiseCurrentRetryInfo {
 /** promise 重试选项 */
 export interface XPromiseRetryOptions {
   /** 最大重试次数
+   * 需要设置>0 否则会当作0处理
    * @default 0 默认不重试，即只执行一次
    */
   maxRetry?: number;
@@ -166,7 +167,7 @@ export const usePromiseRetry = <T>(
                   retryCount,
                   runTime,
                   errorMessageList,
-                  code: XPromiseErrorCodeEnum.RETRY_CAN_RETRY_FN_FAILED,
+                  code: XPromiseErrorCodeEnum.RETRY_CAN_CONDITION_FN_FAILED,
                   message: canRetryExecErr?.message || undefined,
                 });
                 reject(canRetryExecErrFinal);

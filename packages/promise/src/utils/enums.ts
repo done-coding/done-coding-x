@@ -12,8 +12,8 @@ export enum XPromiseErrorCodeEnum {
   ABORT,
   /** 重试超出限制 */
   RETRY_EXCEED_LIMIT,
-  /** 重试判断是否可以重试函数执行失败 */
-  RETRY_CAN_RETRY_FN_FAILED,
+  /** 重试条件函数执行失败 */
+  RETRY_CAN_CONDITION_FN_FAILED,
   /** 重试延迟函数执行失败 */
   RETRY_DELAY_FN_FAILED,
 }

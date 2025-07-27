@@ -101,9 +101,9 @@ console.log(isRetrying()); // true/false
 import { usePromisePolling } from "@done-coding/x-promise";
 
 const { startPolling, stopPolling, getStatus, isPolling } = usePromisePolling(
-  () => checkStatus(),
+  () => fetchData(),
   {
-    maxRetry: 10,
+    maxPollingCount: 10,
     delay: 2000,
   },
 );
@@ -115,6 +115,8 @@ console.log(isPolling());
 ```
 
 > **说明**：轮询本质上是基于重试的"直到成功"或"定期检查"，API与 usePromiseRetry 完全一致。
+>
+> `maxPollingCount` 必须大于 1，否则会被当作 1 处理，即只轮询一次。
 
 ### 4. Promise 共享 usePromiseSharing
 
@@ -189,14 +191,20 @@ export interface XPromiseRetryOptions {
     err?: any,
   ) => boolean;
   delay?:
-    | number
-    | ((info: { retryCount: number; runTime: number }, err?: any) => number);
+    | ((info: { retryCount: number; runTime: number }, err?: any) => number)
+    | number;
 }
 
-export interface XPromisePollingOptions extends XPromiseRetryOptions {
-  maxRetry: number; // 必填
+/** promise 轮询选项 */
+export interface XPromisePollingOptions {
+  maxPollingCount?: number; // 最大轮询次数 默认Infinity
+  maxRunTime?: number; // 最大运行时间，默认Infinity
+  canPolling?: (
+    info: { pollingCount: number; runTime: number },
+    err?: any,
+  ) => boolean;
+  delay?: ((info: XPromiseCurrentPollingInfo, err?: any) => number) | number;
 }
-
 // 共享选项
 export interface XPromiseSharingOptions {
   rejectClean?: boolean; // reject时是否清理，默认true
@@ -217,7 +225,7 @@ export enum XPromiseErrorCodeEnum {
   TIMEOUT,
   ABORT,
   RETRY_EXCEED_LIMIT,
-  RETRY_CAN_RETRY_FN_FAILED,
+  RETRY_CAN_CONDITION_FN_FAILED,
   RETRY_DELAY_FN_FAILED,
 }
 ```
@@ -230,14 +238,14 @@ export enum XPromiseErrorCodeEnum {
 
 ### 错误码说明
 
-| code                      | 含义                 |
-| ------------------------- | -------------------- |
-| CREATE_PROMISE_FAILED     | 创建Promise失败      |
-| TIMEOUT                   | 超时                 |
-| ABORT                     | 操作被中止           |
-| RETRY_EXCEED_LIMIT        | 超过重试/轮询限制    |
-| RETRY_CAN_RETRY_FN_FAILED | canRetry函数执行失败 |
-| RETRY_DELAY_FN_FAILED     | delay函数执行失败    |
+| code                          | 含义                 |
+| ----------------------------- | -------------------- |
+| CREATE_PROMISE_FAILED         | 创建Promise失败      |
+| TIMEOUT                       | 超时                 |
+| ABORT                         | 操作被中止           |
+| RETRY_EXCEED_LIMIT            | 超过重试/轮询限制    |
+| RETRY_CAN_CONDITION_FN_FAILED | canRetry函数执行失败 |
+| RETRY_DELAY_FN_FAILED         | delay函数执行失败    |
 
 ## 最佳实践
 

@@ -192,7 +192,7 @@ describe("retry", () => {
     } catch (e) {
       expect(e).toBeInstanceOf(XPromiseRetryError);
       expect((e as XPromiseRetryError).code).toBe(
-        XPromiseErrorCodeEnum.RETRY_CAN_RETRY_FN_FAILED,
+        XPromiseErrorCodeEnum.RETRY_CAN_CONDITION_FN_FAILED,
       );
     }
   });

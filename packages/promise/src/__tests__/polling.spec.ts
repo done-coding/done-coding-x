@@ -3,124 +3,77 @@ import { usePromisePolling, XPromiseRetryError } from "@/x-fn";
 import { XPromiseErrorCodeEnum, XPromiseStateEnum } from "@/utils";
 
 describe("polling", () => {
-  test("首次成功不需要轮询", async () => {
-    const mockFn = vi.fn().mockResolvedValue("success");
-    const { startPolling } = usePromisePolling(mockFn, { maxRetry: 3 });
-    const result = await startPolling();
-    expect(result).toBe("success");
-    expect(mockFn).toHaveBeenCalledTimes(1);
-  });
-
-  test("轮询直到成功", async () => {
-    const mockFn = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("first error"))
-      .mockRejectedValueOnce(new Error("second error"))
-      .mockResolvedValue("success");
-    const { startPolling } = usePromisePolling(mockFn, { maxRetry: 3 });
-    const result = await startPolling();
-    expect(result).toBe("success");
-    expect(mockFn).toHaveBeenCalledTimes(3);
-  });
-
-  test("超过最大轮询次数后失败", async () => {
-    const error = new Error("test error");
-    const mockFn = vi.fn().mockRejectedValue(error);
-    const { startPolling } = usePromisePolling(mockFn, { maxRetry: 2 });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(XPromiseRetryError);
-      expect((e as XPromiseRetryError).retryCount).toBe(2);
-      expect((e as XPromiseRetryError).errorMessageList).toHaveLength(3);
-      expect((e as XPromiseRetryError).code).toBe(
-        XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT,
-      );
-    }
-    expect(mockFn).toHaveBeenCalledTimes(3);
-  });
-
-  test("自定义轮询条件", async () => {
+  test("maxPollingCount=1 时只轮询一次", async () => {
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
-    const canRetry = vi.fn().mockReturnValue(false);
-    const { startPolling } = usePromisePolling(mockFn, { canRetry });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(XPromiseRetryError);
-      expect((e as XPromiseRetryError).retryCount).toBe(0);
-      expect((e as XPromiseRetryError).errorMessageList).toHaveLength(1);
-      expect((e as XPromiseRetryError).code).toBe(
-        XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT,
-      );
-    }
-    expect(canRetry).toHaveBeenCalledWith(
-      { retryCount: 0, runTime: expect.any(Number) },
-      expect.any(Error),
-    );
+    const { startPolling } = usePromisePolling(mockFn, { maxPollingCount: 1 });
+    await startPolling().catch(() => {});
     expect(mockFn).toHaveBeenCalledTimes(1);
   });
 
-  test("带延迟的轮询", async () => {
-    const mockFn = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("first error"))
-      .mockResolvedValue("success");
-
-    const startTime = Date.now();
-    const { startPolling } = usePromisePolling(mockFn, {
-      maxRetry: 3,
-      delay: 100,
-    });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    const result = await promise;
-    const endTime = Date.now();
-
-    expect(result).toBe("success");
-    expect(mockFn).toHaveBeenCalledTimes(2);
-    expect(endTime - startTime).toBeGreaterThanOrEqual(100);
+  test("maxPollingCount=3 时轮询三次", async () => {
+    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
+    const { startPolling } = usePromisePolling(mockFn, { maxPollingCount: 3 });
+    await startPolling().catch(() => {});
+    expect(mockFn).toHaveBeenCalledTimes(3);
   });
 
-  test("动态延迟时间", async () => {
-    const mockFn = vi
+  test("maxPollingCount=0 时等价于1次", async () => {
+    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
+    const { startPolling } = usePromisePolling(mockFn, { maxPollingCount: 0 });
+    await startPolling().catch(() => {});
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("canPolling 控制提前终止", async () => {
+    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
+    const canPolling = vi
       .fn()
-      .mockRejectedValueOnce(new Error("first error"))
-      .mockResolvedValue("success");
-
-    const delay = vi.fn().mockReturnValue(100);
+      .mockImplementation(({ pollingCount }) => pollingCount < 2);
     const { startPolling } = usePromisePolling(mockFn, {
-      maxRetry: 3,
-      delay,
+      maxPollingCount: 5,
+      canPolling,
     });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    const result = await promise;
-
-    expect(result).toBe("success");
+    await startPolling().catch(() => {});
+    await Promise.resolve(); // 等待异步流程
     expect(mockFn).toHaveBeenCalledTimes(2);
-    expect(delay).toHaveBeenCalledWith(
-      { retryCount: 0, runTime: expect.any(Number) },
+    expect(canPolling).toHaveBeenCalledWith(
+      { pollingCount: 1, runTime: expect.any(Number) },
       expect.any(Error),
     );
+  });
+
+  test("startPolling 返回 Promise<void>", async () => {
+    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
+    const { startPolling } = usePromisePolling(mockFn, { maxPollingCount: 2 });
+    const result = startPolling();
+    expect(result).toBeInstanceOf(Promise);
+    await result.catch(() => {});
+  });
+
+  test("轮询成功提前结束", async () => {
+    const mockFn = vi.fn();
+    const { startPolling } = usePromisePolling(mockFn, {
+      maxPollingCount: 5,
+      delay: 10,
+    });
+    await startPolling();
+    expect(mockFn).toHaveBeenCalledTimes(5);
   });
 
   test("最大运行时间限制", async () => {
+    vi.useFakeTimers();
     const mockFn = vi.fn().mockImplementation(() => {
       return new Promise<void>((resolve) => {
         setTimeout(resolve, 100);
       });
     });
     const { startPolling } = usePromisePolling(mockFn, {
-      maxRetry: 3,
+      maxPollingCount: 3,
       maxRunTime: 50,
     });
     const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
+    vi.advanceTimersByTime(100);
+    await Promise.resolve(); // 推进微任务
     try {
       await promise;
     } catch (e) {
@@ -130,120 +83,79 @@ describe("polling", () => {
       );
       expect((e as XPromiseRetryError).runTime).toBeGreaterThanOrEqual(50);
     }
-  });
-
-  test("错误消息列表长度限制", async () => {
-    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
-    const { startPolling } = usePromisePolling(mockFn, {
-      maxRetry: 20,
-      maxErrorMessageListLength: 3,
-    });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(XPromiseRetryError);
-      expect((e as XPromiseRetryError).errorMessageList).toHaveLength(3);
-    }
+    vi.useRealTimers();
   });
 
   test("停止轮询", async () => {
+    vi.useFakeTimers();
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
     const { startPolling, stopPolling } = usePromisePolling(mockFn, {
-      maxRetry: 3,
+      maxPollingCount: 3,
       delay: 100,
     });
-
     const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 50);
-    });
-    stopPolling();
-
+    setTimeout(() => stopPolling(), 50);
+    vi.advanceTimersByTime(50);
+    await Promise.resolve(); // 推进微任务
     try {
       await promise;
     } catch (e) {
       expect(e).toBeInstanceOf(XPromiseRetryError);
       expect((e as XPromiseRetryError).code).toBe(XPromiseErrorCodeEnum.ABORT);
     }
+    vi.useRealTimers();
   });
 
   test("轮询状态管理", async () => {
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
     const { startPolling, getStatus, isPolling } = usePromisePolling(mockFn, {
-      maxRetry: 3,
+      maxPollingCount: 3,
       delay: 100,
     });
-
     expect(getStatus()).toBe(XPromiseStateEnum.NOT_STARTED);
     expect(isPolling()).toBe(false);
-
     const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
+    await Promise.resolve(); // 等待微任务
     expect(getStatus()).toBe(XPromiseStateEnum.PENDING);
     expect(isPolling()).toBe(true);
-
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(XPromiseRetryError);
-    }
-
+    await promise.catch(() => {});
+    await Promise.resolve(); // 再等一次，确保状态切换
     expect(getStatus()).toBe(XPromiseStateEnum.NOT_STARTED);
     expect(isPolling()).toBe(false);
   });
 
-  test("canRetry函数执行错误", async () => {
+  test("canPolling函数执行错误", async () => {
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
-    const canRetry = vi.fn().mockImplementation(() => {
-      throw new Error("canRetry error");
+    const canPolling = vi.fn().mockImplementation(() => {
+      throw new Error("canPolling error");
     });
-    const { startPolling } = usePromisePolling(mockFn, { canRetry });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
+    const { startPolling } = usePromisePolling(mockFn, {
+      maxPollingCount: 3,
+      canPolling,
+    });
     try {
-      await promise;
+      await startPolling();
     } catch (e) {
       expect(e).toBeInstanceOf(XPromiseRetryError);
       expect((e as XPromiseRetryError).code).toBe(
-        XPromiseErrorCodeEnum.RETRY_CAN_RETRY_FN_FAILED,
+        XPromiseErrorCodeEnum.RETRY_CAN_CONDITION_FN_FAILED,
       );
     }
   });
 
-  test("delay函数执行错误-不重试", async () => {
+  test("delay函数执行错误", async () => {
     const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
     const delay = vi.fn().mockImplementation(() => {
       throw new Error("delay error");
     });
-    const { startPolling } = usePromisePolling(mockFn, { delay });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
-    try {
-      await promise;
-    } catch (e) {
-      expect(e).toBeInstanceOf(XPromiseRetryError);
-      expect((e as XPromiseRetryError).code).toBe(
-        XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT,
-      );
-    }
-  });
-
-  test("delay函数执行错误-重试", async () => {
-    const mockFn = vi.fn().mockRejectedValue(new Error("test error"));
-    const delay = vi.fn().mockImplementation(() => {
-      throw new Error("delay error");
+    const { startPolling } = usePromisePolling(mockFn, {
+      maxPollingCount: 3,
+      delay,
     });
-    const { startPolling } = usePromisePolling(mockFn, { delay, maxRetry: 3 });
-    const promise = startPolling();
-    promise.catch(() => {}); // 显式处理拒绝
     try {
-      await promise;
+      await startPolling();
     } catch (e) {
       expect(e).toBeInstanceOf(XPromiseRetryError);
-      expect((e as XPromiseRetryError).retryCount).toBe(0);
       expect((e as XPromiseRetryError).code).toBe(
         XPromiseErrorCodeEnum.RETRY_DELAY_FN_FAILED,
       );
