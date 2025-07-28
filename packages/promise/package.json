@@ -1,6 +1,6 @@
 {
   "name": "@done-coding/x-promise",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "拓展promise",
   "private": false,
   "main": "lib/index.cjs",
