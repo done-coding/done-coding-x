@@ -1,4 +1,4 @@
-import { XPromiseStateEnum } from "@/utils";
+import { XPromiseErrorCodeEnum, XPromiseStateEnum } from "@/utils";
 import type { XPromiseCurrentRetryInfo } from "./retry";
 import { usePromiseRetry, XPromiseRetryError } from "./retry";
 
@@ -74,7 +74,7 @@ export const usePromisePolling = (
       } catch (error) {
         // 不需要处理
       }
-      // 无论成功还是失败 都需要抛错触发下次轮询
+      // !!! 无论成功还是失败 都需要抛错触发下次轮询
       throw new Error("触发下次轮询");
     },
     {
@@ -103,15 +103,20 @@ export const usePromisePolling = (
     startPolling: async () => {
       try {
         await startRetry();
+        // !!! 当前设计轮询不存在成功这说，只有是否达到跳出限制
+        // !!! 下行return代码走不到
         return;
       } catch (error) {
         // 轮询只要没有达到限制条件 每次失败成功无所谓
         // 为了复用重试机制 会将createPromise包装一层 每次都是失败
-        if (error instanceof XPromiseRetryError) {
-          return error;
+        if (
+          error instanceof XPromiseRetryError &&
+          error.code === XPromiseErrorCodeEnum.RETRY_EXCEED_LIMIT
+        ) {
+          return Promise.resolve();
+        } else {
+          throw error;
         }
-        await Promise.resolve();
-        return;
       }
     },
     /** 停止轮询 */

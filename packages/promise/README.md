@@ -58,7 +58,7 @@ promise.timeout(1000).then(
 - 如果 Promise 创建过程中发生异常，会直接抛出该异常，而不会触发超时。
 - 如果 Promise 创建后但在 resolve/reject 前发生异常，且超时先发生，则抛出超时错误；否则抛出原始异常。
 
-### 2. 重试功能 usePromiseRetry
+### 2.<span id="usePromiseRetry"> 重试功能 usePromiseRetry</span>
 
 ```typescript
 import { usePromiseRetry } from "@done-coding/x-promise";
@@ -114,8 +114,13 @@ console.log(getStatus());
 console.log(isPolling());
 ```
 
-> **说明**：轮询底层基于 `usePromiseRetry`，但跳出轮询的条件只有超出maxPollingCount或maxRunTime(stopPolling的返回值不是createPromise成功的返回值，即无论失败还是成功都不会结束轮询)，否则会一直轮询; 当然也可以在直接通过canPolling给出是否继续轮询结果
-> `maxPollingCount` 必须大于 1，否则会被当作 1 处理，即只轮询一次。
+**说明**：
+
+- `delay` 参数支持传入函数，函数接收当前轮询信息（轮询次数、运行时间）和错误对象，返回延迟时间。
+- 如果 `delay` 函数执行失败，会抛出 `RETRY_DELAY_FN_FAILED` 错误。
+- 轮询底层基于 `usePromiseRetry`，但跳出轮询的条件只有超出maxPollingCount或maxRunTime，即无论每次执行是否成功，内部都会包装为失败，触发下次轮询
+- <b style="color:red"> 若需要根据单次执行成功额外跳出，请换用 [usePromiseRetry](#usePromiseRetry) 实现。</b>
+- `maxPollingCount` 必须大于 1，否则会被当作 1 处理，即只轮询一次。
 
 ### 4. Promise 共享 usePromiseSharing
 
@@ -237,14 +242,14 @@ export enum XPromiseErrorCodeEnum {
 
 ### 错误码说明
 
-| code                          | 含义                 |
-| ----------------------------- | -------------------- |
-| CREATE_PROMISE_FAILED         | 创建Promise失败      |
-| TIMEOUT                       | 超时                 |
-| ABORT                         | 操作被中止           |
-| RETRY_EXCEED_LIMIT            | 超过重试/轮询限制    |
-| RETRY_CAN_CONDITION_FN_FAILED | canRetry函数执行失败 |
-| RETRY_DELAY_FN_FAILED         | delay函数执行失败    |
+| code                          | 含义                          |
+| ----------------------------- | ----------------------------- |
+| CREATE_PROMISE_FAILED         | 创建Promise失败               |
+| TIMEOUT                       | 超时                          |
+| ABORT                         | 操作被中止                    |
+| RETRY_EXCEED_LIMIT            | 超过重试/轮询限制             |
+| RETRY_CAN_CONDITION_FN_FAILED | 重试/轮询条件判断函数执行失败 |
+| RETRY_DELAY_FN_FAILED         | delay函数执行失败             |
 
 ## 最佳实践
 
