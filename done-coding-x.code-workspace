@@ -5,7 +5,11 @@
       "path": "."
     },
     {
-      "name": "@done-coding/x-promise",
+      "name": "event",
+      "path": "./packages/event"
+    },
+    {
+      "name": "promise",
       "path": "./packages/promise"
     }
   ],

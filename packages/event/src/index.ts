@@ -1,4 +1,1 @@
-const test = () => {
-  console.log("test");
-};
-export { test };
+export * from "./manager";
