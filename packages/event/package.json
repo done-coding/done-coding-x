@@ -1,6 +1,6 @@
 {
   "name": "@done-coding/x-event",
-  "version": "0.0.0",
+  "version": "0.0.1-alpha.0",
   "description": "事件维护相关",
   "private": false,
   "main": "lib/index.cjs",
@@ -54,7 +54,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
   }
 }

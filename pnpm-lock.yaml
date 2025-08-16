@@ -83,7 +83,7 @@ importers:
   packages/promise:
     dependencies:
       "@done-coding/x-event":
-        specifier: workspace:0.0.0
+        specifier: workspace:0.0.1-alpha.0
         version: link:../event
     devDependencies:
       "@types/node":
@@ -772,6 +772,7 @@ packages:
       {
         integrity: sha512-ekM12jNm/7O2I/hsRv9HvYkRdfrHpiV1epVuI2NP+eTIcEgdIdKkKCs9KgQydu/8R5YXTov9aHdOgplmCHLupw==,
       }
+    cpu: [x64, arm64, s390x]
     os: [darwin, linux, win32]
     hasBin: true
 
