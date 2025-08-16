@@ -10,7 +10,7 @@ export type EventType = string | symbol | number;
 /** 触发事件参数 */
 export interface DispatchEventParams {
   type: EventType;
-  detail: unknown;
+  detail?: unknown;
 }
 
 /** 事件监听器函数类型 */
