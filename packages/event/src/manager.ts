@@ -36,8 +36,11 @@ export class EventManager {
     return new this(options);
   }
 
-  /** 事件列表 */
-  private eventMap: Map<EventType, Set<OnceFn>> = new Map();
+  /** 事件列表：监听器 -> 注册序号，序号用于区分移除后重新注册的同一函数 */
+  private eventMap: Map<EventType, Map<OnceFn, number>> = new Map();
+
+  /** 下一个注册序号 */
+  private nextRegistrationId = 0;
 
   private constructor(private options?: EventManagerOptions) {}
 
@@ -56,7 +59,7 @@ export class EventManager {
       if (listeners.has(listener as OnceFn)) {
         listeners.delete(listener as OnceFn);
       } else {
-        for (const item of listeners) {
+        for (const item of listeners.keys()) {
           if (item._raw === listener) {
             listeners.delete(item);
             break;
@@ -85,10 +88,11 @@ export class EventManager {
     }
     let listenerFinal = listener as OnceFn;
     if (options.once) {
-      const onceListener = Object.assign(
+      const onceListener: OnceFn = Object.assign(
         (eventParams: DispatchEventParams) => {
+          // 先移除包装函数：回调抛错或重入触发都不再执行，也不影响同一函数的常驻监听
+          this.removeEventListener(type, onceListener);
           listener(eventParams);
-          this.removeEventListener(type, listener);
         },
         {
           /** 原始监听函数 */
@@ -97,11 +101,10 @@ export class EventManager {
       );
       listenerFinal = onceListener;
     }
-    const targetListeners = this.eventMap.get(type);
-    if (!targetListeners) {
-      this.eventMap.set(type, new Set([listenerFinal]));
-    } else {
-      targetListeners.add(listenerFinal);
+    const targetListeners = this.eventMap.get(type) ?? new Map();
+    this.eventMap.set(type, targetListeners);
+    if (!targetListeners.has(listenerFinal)) {
+      targetListeners.set(listenerFinal, this.nextRegistrationId++);
     }
   }
 
@@ -110,11 +113,20 @@ export class EventManager {
     const { type, detail } = eventParams;
     const listeners = this.eventMap.get(type);
     if (listeners) {
-      listeners.forEach((listener) => {
+      // 遍历快照：派发中新增的监听器下次生效，派发中移除的监听器本次不再执行
+      [...listeners].forEach(([listener, registrationId]) => {
+        // 序号不同说明本次派发中被移除后又重新注册，也按新增处理
+        if (listeners.get(listener) !== registrationId) {
+          return;
+        }
         try {
           listener({ type, detail });
         } catch (error) {
-          this.options?.onError?.({ eventParams, listener, error });
+          if (this.options?.onError) {
+            this.options.onError({ eventParams, listener, error });
+          } else {
+            console.error("EventManager: 事件监听器执行失败", error);
+          }
         }
       });
     }
@@ -150,6 +162,8 @@ export class EventManager {
 
   /** 清空事件 */
   public clear = () => {
+    // 同时清空内层：进行中的派发持有内层引用，本次剩余的监听器也不再执行
+    this.eventMap.forEach((listeners) => listeners.clear());
     this.eventMap.clear();
   };
   /** 检查事件类型 */
