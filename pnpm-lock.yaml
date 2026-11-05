@@ -83,7 +83,7 @@ importers:
   packages/promise:
     dependencies:
       "@done-coding/x-event":
-        specifier: workspace:0.0.0
+        specifier: workspace:0.0.1-alpha.0
         version: link:../event
     devDependencies:
       "@types/node":
