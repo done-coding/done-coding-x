@@ -26,6 +26,9 @@ export const usePromiseSharing = <T>(
 
   let promise: Promise<T> | undefined;
 
+  /** 当前轮次：工厂可能复用同一个 promise，不能用 promise 引用区分轮次 */
+  let currentRound: object | undefined;
+
   /** promise 状态 */
   let status: XPromiseStateEnum = XPromiseStateEnum.NOT_STARTED;
 
@@ -46,41 +49,47 @@ export const usePromiseSharing = <T>(
     });
   };
 
+  /** 清除当前 promise 并回到未开始 */
+  const clearCurrentPromise = () => {
+    promise = undefined;
+    currentRound = undefined;
+    changeStatus(XPromiseStateEnum.NOT_STARTED);
+  };
+
   const applyPromise = (): Promise<T> => {
     if (promise) {
       return promise;
     }
 
-    // status = XPromiseStateEnum.PENDING;
+    const round = {};
+    currentRound = round;
 
-    changeStatus(XPromiseStateEnum.PENDING);
+    // 工厂执行时状态已是等待中；PENDING 事件要等 promise 保存后才通知，监听器重入时才能共享
+    status = XPromiseStateEnum.PENDING;
+    const currentPromise = ensureCreatePromiseFlowNormal(() => createPromise());
+    promise = currentPromise;
 
-    promise = ensureCreatePromiseFlowNormal(() => createPromise());
+    /** 结算本轮 */
+    const settle = (nextStatus: XPromiseStateEnum, clean: boolean) => {
+      changeStatus(nextStatus);
+      // 监听器可能已清除本轮或开始新一轮
+      if (clean && currentRound === round) {
+        clearCurrentPromise();
+      }
+    };
 
-    promise
-      .then(() => {
-        // status = XPromiseStateEnum.FULFILLED;
-        changeStatus(XPromiseStateEnum.FULFILLED);
-        if (resolveClean) {
-          promise = undefined;
-          // console.log("Promise sharing: promise resolve，已重置");
-        }
-      })
-      .catch(() => {
-        // status = XPromiseStateEnum.REJECTED;
-        changeStatus(XPromiseStateEnum.REJECTED);
-        if (rejectClean) {
-          promise = undefined;
-          // console.log("Promise sharing: promise reject，已重置");
-        }
-      });
+    // 同时提供失败分支，避免内部链产生未处理拒绝；失败由调用方通过返回的 promise 处理
+    // 先于 PENDING 通知挂接，监听器挂接的回调才能看到结算后的状态
+    currentPromise.then(
+      () => settle(XPromiseStateEnum.FULFILLED, resolveClean),
+      () => settle(XPromiseStateEnum.REJECTED, rejectClean),
+    );
 
-    promise.finally(() => {
-      // status = XPromiseStateEnum.NOT_STARTED;
-      changeStatus(XPromiseStateEnum.NOT_STARTED);
+    eventManager.trigger({
+      type: XPromiseStateEnum.PENDING,
     });
 
-    return promise;
+    return currentPromise;
   };
 
   /**
@@ -94,17 +103,21 @@ export const usePromiseSharing = <T>(
       }
       case XPromiseStateEnum.PENDING: {
         console.warn("Promise sharing: promise clear，promise等待中");
+        const round = currentRound;
         return promise!
           .then(() => {
             return;
           })
           .finally(() => {
-            promise = undefined;
+            // 等待期间可能已开始新一轮，不能覆盖
+            if (currentRound === round) {
+              clearCurrentPromise();
+            }
           });
       }
       case XPromiseStateEnum.FULFILLED:
       case XPromiseStateEnum.REJECTED: {
-        promise = undefined;
+        clearCurrentPromise();
         return;
       }
     }
@@ -143,8 +156,8 @@ export class XPromiseSharingManager {
   public clear = (key: string): void => {
     const targetPromiseSharing = this.map.get(key);
     if (targetPromiseSharing) {
-      // 失败成功无所谓 主要目的是删除map中的key
-      targetPromiseSharing.clearPromise();
+      // 失败成功无所谓 主要目的是删除map中的key；失败由 apply 的调用方处理
+      targetPromiseSharing.clearPromise().catch(() => {});
       targetPromiseSharing.eventManager.clear();
       this.map.delete(key);
     }
